@@ -157,7 +157,7 @@ class ProductCard extends StatefulWidget {
 
 class _ProductCardState extends State<ProductCard> {
   int _quantity = 0;
-  void updateIncrement(String id) {
+  void updateIncrement() {
     if (_quantity >= 0) _quantity++;
 
     setState(() {});
@@ -218,7 +218,7 @@ class _ProductCardState extends State<ProductCard> {
                           Theme.of(context).colorScheme.onSecondary,
                     ),
                     onPressed: () {
-                      updateIncrement(widget.product.id);
+                      updateIncrement();
                     },
                     child: const Icon(Icons.add),
                   ),
