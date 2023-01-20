@@ -1,16 +1,19 @@
+import 'package:assigment/src/controllers/cart_controller.dart';
 import 'package:assigment/src/models/prodcut.dart';
 import 'package:assigment/src/utility.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_json_view/flutter_json_view.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   final String title;
   const HomePage({Key? key, required this.title}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   // List of hardcoded images for products.
   List<String> hardcodedImages = [
     'https://nurserynisarga.in/wp-content/uploads/2021/08/Hot-climate-Apple.jpg',
@@ -24,14 +27,34 @@ class _HomePageState extends State<HomePage> {
   /// read and write the file if it exists other return `null`.
   Future<List<Product>> fetchProduct() async {
     try {
-      final List? jsonData = await loadJsonFromFile('assets/data.json');
-      // if (jsonData != null) {
-      return jsonData!.map((e) => Product.fromJson(e)).toList();
-      // }
+      final jsonData = await loadJsonFromFile('assets/data.json') as List;
 
+      return jsonData.map((e) => Product.fromJson(e)).toList();
     } catch (e) {
       throw Exception(e);
     }
+  }
+
+  // Function to show the user input dialog.
+  void showUserDialog(BuildContext context) {
+    final cartData = ref.read(cartControllerProvider.notifier).items;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('User Response'),
+          children: [
+            ...cartData
+                .map(
+                  (e) => JsonView.map(
+                    e.toMap(),
+                  ),
+                )
+                .toList()
+          ],
+        );
+      },
+    );
   }
 
   /// Future  for showing the list of product
@@ -39,7 +62,7 @@ class _HomePageState extends State<HomePage> {
   /// build method if  function [loadJsonFromFile] is directly called in build method.
   late Future<List<Product>> futureProducts;
 
-  /// Can be done using Enum or List<Categories> but for  simplicity using string for now.
+  // Can be done using Enum or List<Categories> but for  simplicity using string for now.
   String category = 'Default';
 
   @override
@@ -137,35 +160,53 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        shape: const CircleBorder(),
+        onPressed: () => showUserDialog(context),
+        child: const Icon(Icons.shopping_bag_sharp),
+      ),
     );
   }
 }
 
-class ProductCard extends StatefulWidget {
+class ProductCard extends ConsumerStatefulWidget {
   const ProductCard({
     Key? key,
     required this.hardcodedImage,
     required this.product,
   }) : super(key: key);
-
   final String hardcodedImage;
   final Product product;
 
   @override
-  State<ProductCard> createState() => _ProductCardState();
+  ConsumerState<ProductCard> createState() => _ProductCardState();
 }
 
-class _ProductCardState extends State<ProductCard> {
+class _ProductCardState extends ConsumerState<ProductCard> {
   int _quantity = 0;
-  void updateIncrement() {
-    if (_quantity >= 0) _quantity++;
 
+  // Function to update the quantity
+  updateCartQuantity() {
+    ref.read(cartControllerProvider.notifier).update(
+        cartItem: Cart(
+            id: widget.product.id,
+            name: widget.product.name,
+            quantity: _quantity));
+  }
+
+  void increment() {
+    if (_quantity >= 0) {
+      _quantity = _quantity + 1;
+      updateCartQuantity();
+    }
     setState(() {});
   }
 
-  void updateDecrement() {
-    if (_quantity > 0) _quantity--;
-
+  void decrement() {
+    if (_quantity > 0) {
+      _quantity = _quantity - 1;
+      updateCartQuantity();
+    }
     setState(() {});
   }
 
@@ -218,7 +259,7 @@ class _ProductCardState extends State<ProductCard> {
                           Theme.of(context).colorScheme.onSecondary,
                     ),
                     onPressed: () {
-                      updateIncrement();
+                      increment();
                     },
                     child: const Icon(Icons.add),
                   ),
@@ -233,7 +274,7 @@ class _ProductCardState extends State<ProductCard> {
                           Theme.of(context).colorScheme.onSecondary,
                     ),
                     onPressed: () {
-                      updateDecrement();
+                      decrement();
                     },
                     child: const Icon(Icons.remove),
                   )
